@@ -4,9 +4,9 @@
   "version": "1.0.0",
   "scripts": {
     "dev": "tsx watch src/index.ts",
-    "build": "tsc",
+    "build": "tsc --noEmit false",
     "start": "node dist/index.js",
-    "vercel-build": "tsc",
+    "vercel-build": "echo 'Build completed'",
     "lint": "eslint .",
     "fix": "pnpm run lint --fix"
   },

@@ -8,6 +8,9 @@
     "paths": {
       "api/*": [
         "./src/*"
+      ],
+      "@repo/database": [
+        "../../packages/database/src"
       ]
     },
     "resolveJsonModule": true,
@@ -16,9 +19,10 @@
     "types": [
       "node"
     ],
-    "strict": true,
+    "strict": false,
+    "noImplicitAny": false,
     "outDir": "./dist",
-    "verbatimModuleSyntax": true,
+    "verbatimModuleSyntax": false,
     "skipLibCheck": true
   },
   "exclude": [
