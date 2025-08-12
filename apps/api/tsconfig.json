@@ -1,6 +1,6 @@
 {
   "compilerOptions": {
-    "target": "ESNext",
+    "target": "ES2022",
     "jsx": "react-jsx",
     "jsxImportSource": "hono/jsx",
     "module": "ESNext",
@@ -11,6 +11,8 @@
       ]
     },
     "resolveJsonModule": true,
+    "allowSyntheticDefaultImports": true,
+    "esModuleInterop": true,
     "types": [
       "node"
     ],
@@ -20,6 +22,7 @@
     "skipLibCheck": true
   },
   "exclude": [
-    "node_modules"
+    "node_modules",
+    "dist"
   ]
 }
