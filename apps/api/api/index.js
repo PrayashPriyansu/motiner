@@ -1,6 +1,6 @@
 // Simple Vercel serverless function
-const { Hono } = require('hono')
-const { handle } = require('hono/vercel')
+import { Hono } from 'hono'
+import { handle } from 'hono/vercel'
 
 const app = new Hono()
 
@@ -17,4 +17,4 @@ app.get('/sites', (c) => {
   return c.json({ message: 'Sites endpoint - database connection needed' })
 })
 
-module.exports = handle(app)
+export default handle(app)
