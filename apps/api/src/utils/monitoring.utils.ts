@@ -2,8 +2,8 @@
  * Shared monitoring utilities to eliminate code duplication
  */
 
-import { db, pings, siteStats } from '@repo/database'
-import { eq, and, avg, count, sql } from 'drizzle-orm'
+import { db, siteStats } from '@repo/database'
+import { eq } from 'drizzle-orm'
 
 /**
  * Check if a website is up and return status information
@@ -68,52 +68,11 @@ export async function checkWebsiteStatus(url: string) {
 }
 
 /**
- * Calculate comprehensive site statistics
+ * Calculate running average response time
  */
-export async function calculateSiteStats(siteId: string) {
-  // Get total pings for this site
-  const totalPings = await db
-    .select({ count: count() })
-    .from(pings)
-    .where(eq(pings.siteId, siteId))
-
-  // Get successful pings for this site
-  const successfulPings = await db
-    .select({ count: count() })
-    .from(pings)
-    .where(and(
-      eq(pings.siteId, siteId),
-      eq(pings.isUp, true)
-    ))
-
-  // Calculate uptime percentage
-  const total = totalPings[0]?.count || 0
-  const successful = successfulPings[0]?.count || 0
-  const uptimePercentage = total > 0 ? (successful / total) * 100 : 0
-
-  // Calculate average response time for successful pings only
-  const avgResponseResult = await db
-    .select({ avg: avg(pings.responseTime) })
-    .from(pings)
-    .where(and(
-      eq(pings.siteId, siteId),
-      eq(pings.isUp, true),
-      sql`${pings.responseTime} IS NOT NULL`
-    ))
-
-  const avgResponseTime = Math.round(Number(avgResponseResult[0]?.avg) || 0)
-
-  // Return calculated all-time stats
-  return {
-    uptime1h: uptimePercentage,
-    uptime24h: uptimePercentage,
-    uptime7d: uptimePercentage,
-    avgResponseTime1h: avgResponseTime,
-    avgResponseTime24h: avgResponseTime,
-    avgResponseTime7d: avgResponseTime,
-    uptimeAllTime: uptimePercentage,
-    avgResponseTimeAllTime: avgResponseTime,
-  }
+function calculateRunningAverage(currentAvg: number, newValue: number, totalCount: number): number {
+  if (totalCount <= 1) return newValue
+  return Math.round(((currentAvg * (totalCount - 1)) + newValue) / totalCount)
 }
 
 /**
@@ -121,23 +80,74 @@ export async function calculateSiteStats(siteId: string) {
  */
 export async function updateSiteStats(siteId: string, pingResult: any, checkedAt: Date) {
   try {
-    console.log(`🔄 Starting site stats calculation for site ${siteId}`)
-    const calculatedStats = await calculateSiteStats(siteId)
+    console.log(`🔄 Starting site stats update for site ${siteId}`)
 
-    await db.insert(siteStats).values({
-      siteId,
-      currentStatus: pingResult.status === 'up' ? 'up' : 'down',
-      lastChecked: checkedAt,
-      ...calculatedStats,
-    }).onConflictDoUpdate({
-      target: siteStats.siteId,
-      set: {
-        currentStatus: pingResult.status === 'up' ? 'up' : 'down',
+    // Try to get existing stats first
+    const existingStats = await db
+      .select()
+      .from(siteStats)
+      .where(eq(siteStats.siteId, siteId))
+      .limit(1)
+
+    const isUp = pingResult.status === 'up'
+    const responseTime = pingResult.responseTime || 0
+
+    if (existingStats.length === 0) {
+      // Insert new record
+      console.log(`📊 Creating new site stats for site ${siteId}`)
+      await db.insert(siteStats).values({
+        siteId,
+        totalChecks: 1,
+        successfulChecks: isUp ? 1 : 0,
+        currentStatus: isUp ? 'up' : 'down',
         lastChecked: checkedAt,
-        updatedAt: new Date(),
-        ...calculatedStats,
+        uptime1h: isUp ? 100 : 0,
+        uptime24h: isUp ? 100 : 0,
+        uptime7d: isUp ? 100 : 0,
+        uptimeAllTime: isUp ? 100 : 0,
+        avgResponseTime1h: isUp ? responseTime : 0,
+        avgResponseTime24h: isUp ? responseTime : 0,
+        avgResponseTime7d: isUp ? responseTime : 0,
+        avgResponseTimeAllTime: isUp ? responseTime : 0,
+      })
+    } else {
+      // Update existing record
+      const current = existingStats[0]
+      const newTotalChecks = current.totalChecks + 1
+      const newSuccessfulChecks = current.successfulChecks + (isUp ? 1 : 0)
+      const newUptimePercentage = (newSuccessfulChecks / newTotalChecks) * 100
+
+      // Calculate new running average for response time (only for successful checks)
+      let newAvgResponseTime = current.avgResponseTimeAllTime
+      if (isUp && responseTime > 0) {
+        newAvgResponseTime = calculateRunningAverage(
+          current.avgResponseTimeAllTime,
+          responseTime,
+          newSuccessfulChecks
+        )
       }
-    })
+
+      console.log(`📊 Updating site stats for site ${siteId}: ${newSuccessfulChecks}/${newTotalChecks} (${newUptimePercentage.toFixed(1)}%)`)
+
+      await db
+        .update(siteStats)
+        .set({
+          totalChecks: newTotalChecks,
+          successfulChecks: newSuccessfulChecks,
+          currentStatus: isUp ? 'up' : 'down',
+          lastChecked: checkedAt,
+          uptime1h: newUptimePercentage,
+          uptime24h: newUptimePercentage,
+          uptime7d: newUptimePercentage,
+          uptimeAllTime: newUptimePercentage,
+          avgResponseTime1h: newAvgResponseTime,
+          avgResponseTime24h: newAvgResponseTime,
+          avgResponseTime7d: newAvgResponseTime,
+          avgResponseTimeAllTime: newAvgResponseTime,
+          updatedAt: new Date(),
+        })
+        .where(eq(siteStats.siteId, siteId))
+    }
 
     console.log(`📈 Successfully updated site stats for site ${siteId}`)
   } catch (statsError) {

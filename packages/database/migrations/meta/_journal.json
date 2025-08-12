@@ -50,6 +50,27 @@
       "when": 1754896546766,
       "tag": "0006_yielding_colossus",
       "breakpoints": true
+    },
+    {
+      "idx": 7,
+      "version": "7",
+      "when": 1754970944155,
+      "tag": "0007_fearless_shotgun",
+      "breakpoints": true
+    },
+    {
+      "idx": 8,
+      "version": "7",
+      "when": 1754971502491,
+      "tag": "0008_living_hedge_knight",
+      "breakpoints": true
+    },
+    {
+      "idx": 9,
+      "version": "7",
+      "when": 1754971702906,
+      "tag": "0009_aberrant_energizer",
+      "breakpoints": true
     }
   ]
 }

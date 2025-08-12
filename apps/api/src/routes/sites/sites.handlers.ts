@@ -1,6 +1,6 @@
 import type { AppRouteHandler } from 'api/lib/types.js'
 import type { CreateRoute, GetAllRoute, GetByIdRoute, RemoveRoute, UpdateRoute } from './sites.routes.js'
-import { db, sites} from '@repo/database'
+import { db, sites } from '@repo/database'
 import { HttpCode, HttpMsg } from 'api/http/index.js'
 import { eq } from 'drizzle-orm'
 
@@ -28,7 +28,7 @@ export const create: AppRouteHandler<CreateRoute> = async (c) => {
   // this comes as in if there is a validatioion error with respect to the schema in the request body in router then
   // default hook is called see create-app.ts file
 
-  const [result] = await db.insert(sites).values(site).returning()
+  const [result] = await db.insert(sites).values(site as typeof sites.$inferInsert).returning()
 
   return c.json(result, HttpCode.OK)
 }
@@ -37,7 +37,7 @@ export const update: AppRouteHandler<UpdateRoute> = async (c) => {
   const { id } = c.req.valid('param')
   const body = c.req.valid('json')
 
-  const [result] = await db.update(sites).set(body).where(eq(sites.id, id)).returning()
+  const [result] = await db.update(sites).set(body as Partial<typeof sites.$inferInsert>).where(eq(sites.id, id)).returning()
 
   if (!result) {
     return c.json({

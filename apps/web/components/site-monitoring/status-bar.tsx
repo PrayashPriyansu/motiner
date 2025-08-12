@@ -1,7 +1,25 @@
-import { CircleCheck, LucideIcon, RefreshCcw, TriangleAlertIcon } from 'lucide-react';
+import { CircleCheck, LucideIcon, TriangleAlertIcon } from 'lucide-react';
 import React from 'react';
+import PingTrigger from './ping-trigger';
+import { formatRelativeTime } from 'web/lib/date-utils';
 
-export default function StatusBar({ status }: { status: string }) {
+interface PingData {
+  id: string
+  checkedAt: string
+  isUp: boolean
+  responseTime?: number
+  statusCode?: number
+  error?: string
+}
+
+interface StatusBarProps {
+  status: string
+  pings?: PingData[]
+  lastChecked?: string
+  siteId?: string
+}
+
+export default function StatusBar({ status, pings = [], lastChecked, siteId }: StatusBarProps) {
     const statusConfig: Record<string, {
         bgClass: string;
         textClass: string;
@@ -52,16 +70,26 @@ export default function StatusBar({ status }: { status: string }) {
 
             {/* Grid visualization area */}
             <div className="p-6 h-full bg-gradient-to-br from-gray-50/50 to-gray-100/30 dark:from-gray-900/50 dark:to-gray-800/30">
-                <div className="grid grid-cols-10 gap-1 h-32 opacity-20">
-                    {Array.from({ length: 10 }, (_, i) => (
-                        <div
-                            key={i}
-                            className={`rounded-sm ${Math.random() > 0.7
-                                ? 'bg-green-400 dark:bg-green-500'
-                                : 'bg-gray-300 dark:bg-gray-600'
+                <div className="grid grid-cols-10 gap-1 h-32">
+                    {Array.from({ length: 10 }, (_, i) => {
+                        const ping = pings[i]
+                        const hasData = ping !== undefined
+                        const isUp = ping?.isUp || false
+                        
+                        return (
+                            <div
+                                key={i}
+                                className={`rounded-sm transition-colors ${
+                                    !hasData 
+                                        ? 'bg-gray-200 dark:bg-gray-700 opacity-30'
+                                        : isUp 
+                                            ? 'bg-green-400 dark:bg-green-500' 
+                                            : 'bg-red-400 dark:bg-red-500'
                                 }`}
-                        />
-                    ))}
+                                title={hasData ? `${ping.isUp ? 'Up' : 'Down'} - ${new Date(ping.checkedAt).toLocaleString()}${ping.responseTime ? ` (${ping.responseTime}ms)` : ''}` : 'No data'}
+                            />
+                        )
+                    })}
                 </div>
                 <div className="mt-4 text-center text-sm text-gray-500 dark:text-gray-400 flex justify-between items-center gap-3">
                     <p>
@@ -69,9 +97,9 @@ export default function StatusBar({ status }: { status: string }) {
                     </p>
                     <div className='flex items-center gap-2'>
                         <span className="text-xs text-gray-500 dark:text-gray-400">
-                            Last checked: {new Date().toLocaleTimeString()}
+                            Last checked: {lastChecked && lastChecked !== 'Never' ? formatRelativeTime(lastChecked) : 'Never'}
                         </span>
-                    <RefreshCcw className="w-5 h-5 text-gray-400 dark:text-gray-500 hover:text-gray-600 dark:hover:text-gray-400 transition-colors duration-200 cursor-pointer" />
+                        {siteId && <PingTrigger siteId={siteId} />}
                     </div>
                 </div>
             </div>

@@ -5,7 +5,10 @@ import { sites } from './sites.schema'
 export const siteStats = pgTable('site_stats', {
   id: uuid('id').defaultRandom().primaryKey(),
 
-  siteId: uuid('site_id').notNull().references(() => sites.id, { onDelete: 'cascade' }),
+  siteId: uuid('site_id').notNull().unique().references(() => sites.id, { onDelete: 'cascade' }),
+
+  totalChecks: integer('total_checks').notNull().default(1),
+  successfulChecks: integer('successful_checks').notNull().default(0),
 
   // Uptime percentages for different time periods
   uptime1h: real('uptime_1h').notNull().default(0), // percentage 0-100

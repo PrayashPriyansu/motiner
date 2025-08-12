@@ -11,3 +11,5 @@ serve({
   console.log(`✅ Server is running on http://localhost:${info.port}`)
   console.log(`📖 API documentation available at http://localhost:${info.port}/scalar`)
 })
+
+export default app

@@ -26,7 +26,7 @@ export const insertSitesSchema = createInsertSchema(sites).omit({
   updatedAt: true,
 }).extend({
   name: z.string().min(1, 'Name cannot be empty'),
-  url: z.string().url('Must be a valid URL').min(1, 'URL cannot be empty'),
+  url: z.url('Must be a valid URL').min(1, 'URL cannot be empty'),
 })
 
 export const updateSitesSchema = insertSitesSchema.partial()
